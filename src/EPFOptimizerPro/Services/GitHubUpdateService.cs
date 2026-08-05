@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System.IO;
+using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
 using EPFOptimizerPro.Models;
@@ -14,7 +15,7 @@ public sealed class GitHubUpdateService
 
     public GitHubUpdateService()
     {
-        _client.DefaultRequestHeaders.UserAgent.ParseAdd("EPFOptimizerPro/3.6");
+        _client.DefaultRequestHeaders.UserAgent.ParseAdd("EPFOptimizerPro/3.7");
         _client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 
@@ -51,6 +52,39 @@ public sealed class GitHubUpdateService
             Asset = asset
         };
     }
+    public async Task<string> DownloadAsync(GitHubAsset asset, IProgress<double>? progress, CancellationToken token)
+    {
+        string updateFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "WinOptimia", "Updates");
+        Directory.CreateDirectory(updateFolder);
+        string safeName = string.IsNullOrWhiteSpace(asset.Name) ? "WinOptimia-update.zip" : SanitizeFileName(asset.Name);
+        string outputPath = Path.Combine(updateFolder, safeName);
+
+        using HttpResponseMessage response = await _client.GetAsync(asset.BrowserDownloadUrl, HttpCompletionOption.ResponseHeadersRead, token);
+        response.EnsureSuccessStatusCode();
+        long? totalLength = response.Content.Headers.ContentLength;
+        await using Stream source = await response.Content.ReadAsStreamAsync(token);
+        await using FileStream target = File.Create(outputPath);
+        byte[] buffer = new byte[81920];
+        long totalRead = 0;
+
+        while (true)
+        {
+            int read = await source.ReadAsync(buffer.AsMemory(0, buffer.Length), token);
+            if (read == 0) break;
+            await target.WriteAsync(buffer.AsMemory(0, read), token);
+            totalRead += read;
+            if (totalLength.HasValue && totalLength.Value > 0) progress?.Report(totalRead * 100.0 / totalLength.Value);
+        }
+        progress?.Report(100);
+        return outputPath;
+    }
+
+    private static string SanitizeFileName(string fileName)
+    {
+        foreach (char c in Path.GetInvalidFileNameChars()) fileName = fileName.Replace(c, '_');
+        return fileName;
+    }
+
 
     private static GitHubAsset? FindZipAsset(GitHubRelease release)
     {
@@ -95,3 +129,4 @@ public sealed class GitHubUpdateService
         return latestVersion > currentVersion;
     }
 }
+

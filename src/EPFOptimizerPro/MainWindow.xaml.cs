@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     private readonly GitHubUpdateService _updateService = new();
     private AdaptiveTaskEngine _engine;
     private CancellationTokenSource? _cts;
+    private CancellationTokenSource? _updateCts;
     private UpdateCheckResult? _lastUpdateCheck;
     private int _frameIndex;
     private string? _lastReport;
@@ -152,6 +153,7 @@ public partial class MainWindow : Window
         BtnAudit.IsEnabled = false;
         BtnOptimize.IsEnabled = false;
         BtnCheckUpdate.IsEnabled = false;
+        BtnDownloadUpdate.IsEnabled = false;
         BtnAudit.Background = BrushFromHex(optimize ? "#1E3A8A" : "#38BDF8");
         BtnOptimize.Background = BrushFromHex(optimize ? "#22C55E" : "#1E3A8A");
         BtnCancel.Background = BrushFromHex("#F59E0B");
@@ -184,6 +186,7 @@ public partial class MainWindow : Window
         BtnCancel.Background = BrushFromHex("#EF4444");
         TxtActionHint.Text = "Annulation demandée.";
         _cts?.Cancel();
+        _updateCts?.Cancel();
     }
 
     private void BtnOpenReport_Click(object sender, RoutedEventArgs e)
@@ -216,6 +219,7 @@ public partial class MainWindow : Window
         if (_cts is not null) return;
 
         BtnCheckUpdate.IsEnabled = false;
+        BtnDownloadUpdate.IsEnabled = false;
         BtnOpenUpdateRelease.IsEnabled = false;
         TxtUpdateStatus.Text = "Mise à jour : vérification GitHub...";
         Append("[INFO] Vérification GitHub des mises à jour...");
@@ -227,6 +231,7 @@ public partial class MainWindow : Window
                 ? $"Mise à jour disponible : {_lastUpdateCheck.LatestVersion}"
                 : $"Mise à jour : OK ({_lastUpdateCheck.CurrentVersion})";
             BtnOpenUpdateRelease.IsEnabled = !string.IsNullOrWhiteSpace(_lastUpdateCheck.ReleaseUrl);
+            BtnDownloadUpdate.IsEnabled = _lastUpdateCheck.UpdateAvailable && _lastUpdateCheck.Asset is not null;
 
             if (_lastUpdateCheck.UpdateAvailable)
             {
@@ -247,6 +252,64 @@ public partial class MainWindow : Window
             BtnCheckUpdate.IsEnabled = true;
         }
     }
+    private async void BtnDownloadUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        if (_lastUpdateCheck?.Asset is null || _cts is not null || _updateCts is not null) return;
+
+        _updateCts = new CancellationTokenSource();
+        BtnCheckUpdate.IsEnabled = false;
+        BtnDownloadUpdate.IsEnabled = false;
+        ProgressGlobal.Value = 0;
+        TxtPercent.Text = "0 %";
+        TxtStep.Text = "Téléchargement update";
+        TxtUpdateStatus.Text = "Téléchargement de l’archive GitHub...";
+        Append("[INFO] Téléchargement update : " + _lastUpdateCheck.Asset.Name);
+
+        try
+        {
+            Progress<double> progress = new(value =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    double safe = Math.Max(0, Math.Min(100, value));
+                    ProgressGlobal.Value = safe;
+                    TxtPercent.Text = safe.ToString("0") + " %";
+                });
+            });
+
+            string zipPath = await _updateService.DownloadAsync(_lastUpdateCheck.Asset, progress, _updateCts.Token);
+            TxtUpdateStatus.Text = "Update téléchargée : " + Path.GetFileName(zipPath);
+            TxtStep.Text = "Update téléchargée";
+            ProgressGlobal.Value = 100;
+            TxtPercent.Text = "100 %";
+            Append("[OK] Archive téléchargée : " + zipPath);
+
+            string? folder = Path.GetDirectoryName(zipPath);
+            if (!string.IsNullOrWhiteSpace(folder) && Directory.Exists(folder))
+            {
+                Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
+                Append("[INFO] Dossier Updates ouvert : " + folder);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            TxtUpdateStatus.Text = "Téléchargement update annulé";
+            Append("[WARN] Téléchargement update annulé.");
+        }
+        catch (Exception ex)
+        {
+            TxtUpdateStatus.Text = "Erreur téléchargement update";
+            Append("[ERROR] Erreur téléchargement update : " + ex.Message);
+        }
+        finally
+        {
+            BtnCheckUpdate.IsEnabled = true;
+            BtnDownloadUpdate.IsEnabled = _lastUpdateCheck?.UpdateAvailable == true && _lastUpdateCheck.Asset is not null;
+            _updateCts?.Dispose();
+            _updateCts = null;
+        }
+    }
+
 
     private void BtnOpenUpdateRelease_Click(object sender, RoutedEventArgs e)
     {
@@ -259,6 +322,7 @@ public partial class MainWindow : Window
     private void BtnExit_Click(object sender, RoutedEventArgs e)
     {
         _cts?.Cancel();
+        _updateCts?.Cancel();
         Close();
     }
 
@@ -269,3 +333,4 @@ public partial class MainWindow : Window
         base.OnClosed(e);
     }
 }
+

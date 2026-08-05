@@ -1,7 +1,7 @@
 ﻿<Window x:Class="EPFOptimizerPro.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="EPF Optimizer Pro Premium IA v3.6" Height="940" Width="1320" MinHeight="860" MinWidth="1180"
+        Title="EPF Optimizer Pro Premium IA v3.7" Height="940" Width="1320" MinHeight="860" MinWidth="1180"
         WindowStartupLocation="CenterScreen" Background="#020617" FontFamily="Segoe UI">
     <Window.Resources>
         <LinearGradientBrush x:Key="PageGradient" StartPoint="0,0" EndPoint="1,1">
@@ -85,7 +85,7 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel>
                     <TextBlock Text="EPF Optimizer Pro" FontSize="15" Foreground="{StaticResource Sky}" FontWeight="SemiBold"/>
-                    <TextBlock Text="Adaptive Task Engine v3.6" FontSize="34" FontWeight="Bold" Margin="0,2,0,4"/>
+                    <TextBlock Text="Adaptive Task Engine v3.7" FontSize="34" FontWeight="Bold" Margin="0,2,0,4"/>
                     <TextBlock Text="Dashboard fluide : mises à jour UI limitées, tâches actives visibles et terminées en mini-icônes." Foreground="{StaticResource TextMuted}" FontSize="12"/>
                 </StackPanel>
                 <Grid Grid.Column="1">
@@ -124,6 +124,7 @@
                         <Button x:Name="BtnOpenReport" Content="Rapport" MinWidth="128" Click="BtnOpenReport_Click"/>
                         <Button x:Name="BtnOpenLearning" Content="Mémoire IA" MinWidth="128" Click="BtnOpenLearning_Click"/>
                         <Button x:Name="BtnCheckUpdate" Content="Mise à jour" MinWidth="128" Click="BtnCheckUpdate_Click"/>
+                        <Button x:Name="BtnDownloadUpdate" Content="Télécharger update" MinWidth="150" IsEnabled="False" Click="BtnDownloadUpdate_Click"/>
                         <Button x:Name="BtnOpenUpdateRelease" Content="Release GitHub" MinWidth="128" IsEnabled="False" Click="BtnOpenUpdateRelease_Click"/>
                         <Button x:Name="BtnExit" Content="Fermer" MinWidth="110" Click="BtnExit_Click"/>
                     </WrapPanel>
@@ -216,3 +217,4 @@
         </Grid>
     </Grid>
 </Window>
+
