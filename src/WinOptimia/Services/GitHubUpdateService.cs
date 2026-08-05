@@ -109,7 +109,7 @@ public sealed class GitHubUpdateService
 
         int processId = Environment.ProcessId;
         string applicationExe = Path.GetFileName(Environment.ProcessPath ?? "WinOptimia.exe");
-        string args = $"--wait {processId} --zip "{zipPath}" --target "{baseDir}" --exe "{applicationExe}"";
+        string args = $"--wait {processId} --zip \"{zipPath}\" --target \"{baseDir}\" --exe \"{applicationExe}\"";
         Process.Start(new ProcessStartInfo(updaterPath, args) { UseShellExecute = true });
         return true;
     }

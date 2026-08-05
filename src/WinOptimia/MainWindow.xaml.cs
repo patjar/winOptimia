@@ -10,6 +10,8 @@ public partial class MainWindow : Window
     private readonly GitHubUpdateService _updateService = new();
     private UpdateCheckResult? _lastCheck;
     private CancellationTokenSource? _cts;
+    private readonly MemoryManager _memoryManager = new();
+    private MemoryData _memory = new();
 
     public MainWindow()
     {
