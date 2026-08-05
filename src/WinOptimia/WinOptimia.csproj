@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>WinOptimia</AssemblyName>
+    <RootNamespace>WinOptimia</RootNamespace>
+    <Version>4.0.0</Version>
+    <AssemblyVersion>4.0.0.0</AssemblyVersion>
+    <FileVersion>4.0.0.0</FileVersion>
+    <InformationalVersion>4.0.0-github-edition</InformationalVersion>
+    <Company>winOptimia</Company>
+    <Product>winOptimia</Product>
+    <Authors>patjar</Authors>
+    <Description>winOptimia GitHub Edition avec vérification automatique des releases GitHub.</Description>
+  </PropertyGroup>
+</Project>
