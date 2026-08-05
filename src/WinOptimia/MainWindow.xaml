@@ -1,0 +1,96 @@
+﻿<Window x:Class="WinOptimia.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="winOptimia GitHub Edition v4.0" Height="720" Width="1120"
+        WindowStartupLocation="CenterScreen" Background="#020617" FontFamily="Segoe UI">
+    <Window.Resources>
+        <SolidColorBrush x:Key="Panel" Color="#111827"/>
+        <SolidColorBrush x:Key="Border" Color="#26364F"/>
+        <SolidColorBrush x:Key="Text" Color="#F8FAFC"/>
+        <SolidColorBrush x:Key="Muted" Color="#94A3B8"/>
+        <SolidColorBrush x:Key="Blue" Color="#2563EB"/>
+        <SolidColorBrush x:Key="Sky" Color="#38BDF8"/>
+        <SolidColorBrush x:Key="Green" Color="#22C55E"/>
+        <SolidColorBrush x:Key="Orange" Color="#F59E0B"/>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource Blue}"/>
+            <Setter Property="BorderBrush" Value="#60A5FA"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="14,9"/>
+            <Setter Property="Margin" Value="0,0,10,10"/>
+        </Style>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Panel}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="18"/>
+            <Setter Property="Padding" Value="18"/>
+            <Setter Property="Margin" Value="0,0,14,14"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource Card}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="300"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="winOptimia" FontSize="34" FontWeight="Bold" Foreground="{StaticResource Sky}"/>
+                    <TextBlock Text="GitHub Edition v4.0 - Phase 1 : mises à jour depuis les Releases GitHub" Foreground="{StaticResource Muted}" Margin="0,5,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock x:Name="TxtLocalVersion" Text="Version locale : --" Foreground="{StaticResource Green}" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="TxtRemoteVersion" Text="Version GitHub : --" Foreground="{StaticResource Muted}" Margin="0,4,0,0"/>
+                    <TextBlock x:Name="TxtChannel" Text="Canal : stable" Foreground="{StaticResource Muted}" Margin="0,4,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="430"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Mise à jour GitHub" FontSize="22" FontWeight="Bold" Foreground="{StaticResource Sky}"/>
+                    <TextBlock Text="Dépôt utilisé : patjar/winOptimia" Foreground="{StaticResource Muted}" Margin="0,6,0,14"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                        <RadioButton x:Name="RadioStable" Content="Stable" IsChecked="True" Foreground="White" Margin="0,0,18,0"/>
+                        <RadioButton x:Name="RadioBeta" Content="Beta" Foreground="White"/>
+                    </StackPanel>
+
+                    <WrapPanel>
+                        <Button x:Name="BtnCheckUpdate" Content="Rechercher une mise à jour" Click="BtnCheckUpdate_Click"/>
+                        <Button x:Name="BtnDownload" Content="Télécharger" IsEnabled="False" Click="BtnDownload_Click"/>
+                        <Button x:Name="BtnOpenRelease" Content="Page Release" IsEnabled="False" Click="BtnOpenRelease_Click"/>
+                    </WrapPanel>
+
+                    <ProgressBar x:Name="ProgressDownload" Minimum="0" Maximum="100" Height="16" Value="0" Margin="0,12,0,12"/>
+                    <TextBlock x:Name="TxtUpdateStatus" Text="Prêt." Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource Card}" Margin="0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Journal" FontSize="22" FontWeight="Bold" Foreground="{StaticResource Sky}" Margin="0,0,0,10"/>
+                    <TextBox x:Name="TxtLog" IsReadOnly="True" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="Wrap"
+                             Background="#050A16" Foreground="#E5E7EB" BorderBrush="#26364F" Padding="10" FontFamily="Consolas"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

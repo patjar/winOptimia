@@ -1,0 +1,3 @@
+﻿# StorageAnalyzer
+
+Module réservé pour une future version.

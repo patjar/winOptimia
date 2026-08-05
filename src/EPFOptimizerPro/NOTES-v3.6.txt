@@ -1,0 +1,12 @@
+﻿EPF Optimizer Pro Premium v3.6
+
+Correctifs :
+- Corrige ActiveActiveTasksItems en ActiveTasksItems.
+- Corrige CompletedActiveTasksItems en CompletedTasksItems.
+- Conserve les optimisations anti-ralentissement de la v3.5.
+- Conserve ActiveTasks / CompletedTasks et les mini-badges de tâches terminées.
+
+Compilation :
+dotnet clean
+dotnet restore
+dotnet build .\EPFOptimizerPro.csproj -c Release

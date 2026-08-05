@@ -1,0 +1,2 @@
+﻿EPF Optimizer Pro Premium v3.4
+Séparation actives/terminées : les tâches en cours restent en cartes, les tâches terminées descendent en mini-badges avec icône et nom.

@@ -1,0 +1,2 @@
+﻿EPF Optimizer Pro Premium v3.6
+Optimisé anti-ralentissement : throttle UI, BeginInvoke, progression par palier, résumé via timer, journal limité, logs bornés.

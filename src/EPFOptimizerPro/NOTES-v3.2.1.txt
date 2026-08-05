@@ -1,0 +1,7 @@
+﻿EPF Optimizer Pro Premium v3.2.1
+
+Correctif de compilation :
+- chaînes C# réécrites avec échappements valides,
+- chemins Windows corrigés,
+- HTML du rapport corrigé,
+- RenderRecommendations corrigé.

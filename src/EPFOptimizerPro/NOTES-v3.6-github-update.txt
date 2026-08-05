@@ -1,0 +1,1 @@
+﻿Patch EPF Optimizer Pro v3.6 : ajoute un bouton Mise à jour et vérifie la dernière release GitHub patjar/winOptimia. Remplacer les fichiers à la racine du projet EPFOptimizerPro.
