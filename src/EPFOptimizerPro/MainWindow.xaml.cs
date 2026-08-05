@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -11,6 +12,7 @@ namespace EPFOptimizerPro;
 public partial class MainWindow : Window
 {
     private readonly SystemMetrics _metrics = new();
+    private readonly AiAdvisorService _aiAdvisor = new();
     private readonly DispatcherTimer _timer = new();
     private readonly string[] _frames = { "◐", "◓", "◑", "◒" };
     private readonly GitHubUpdateService _updateService = new();
@@ -19,6 +21,8 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _updateCts;
     private UpdateCheckResult? _lastUpdateCheck;
     private int _frameIndex;
+    private int _lastWorkerCount;
+    private string _lastWorkerMode = "non initialise";
     private string? _lastReport;
 
     public MainWindow()
@@ -33,6 +37,7 @@ public partial class MainWindow : Window
         _timer.Tick += (_, _) => Tick();
         _timer.Start();
         RenderRecommendations(_engine.CurrentRecommendations);
+        RenderAiAdvisor(0, 0);
         TxtUpdateStatus.Text = "Mise à jour : non vérifiée";
     }
 
@@ -42,7 +47,12 @@ public partial class MainWindow : Window
         _engine.LogWritten += OnLogWritten;
         _engine.RecommendationsUpdated += items => Dispatcher.Invoke(() => RenderRecommendations(items));
         _engine.ScoreUpdated += score => Dispatcher.Invoke(() => UpdateScoreHero(score));
-        _engine.WorkerModeChanged += (count, mode) => Dispatcher.Invoke(() => TxtWorkers.Text = $"Workers : {count} | {mode}");
+                _engine.WorkerModeChanged += (count, mode) =>
+        {
+            _lastWorkerCount = count;
+            _lastWorkerMode = mode;
+            Dispatcher.Invoke(() => TxtWorkers.Text = $"Workers : {count} | {mode}");
+        };
     }
 
     private void Tick()
@@ -127,16 +137,54 @@ public partial class MainWindow : Window
         TxtDashboardSummary.Text = $"  |  {done}/{total} terminées  |  {running} en cours : {activeNames}  |  {waiting} attente  |  {warn} avert.  |  {error} erreur";
     }
 
+
+    private void RenderAiAdvisor(double cpuInitial, double ramInitial)
+    {
+        int score = 0;
+        _ = int.TryParse(TxtScoreHero.Text, out score);
+
+        var tips = _aiAdvisor.Analyze(
+            _engine.Logs.Cast<object>(),
+            _engine.CompletedTasks.Cast<object>(),
+            score,
+            _lastWorkerCount,
+            _lastWorkerMode,
+            cpuInitial,
+            ramInitial);
+
+        TxtAi.Clear();
+        TxtAi.AppendText(_aiAdvisor.RenderText(tips));
+        TxtAi.ScrollToHome();
+    }
     private void RenderRecommendations(IReadOnlyList<AiRecommendation> recommendations)
     {
         TxtAi.Clear();
+
+        TxtAi.AppendText("Assistant IA local - analyse combinee" + Environment.NewLine + Environment.NewLine);
+
         foreach (var item in recommendations)
         {
-            TxtAi.AppendText($"[{item.Severity}] {item.Title}\n{item.Detail}\n\n");
+            TxtAi.AppendText($"[{item.Severity}] {item.Title}" + Environment.NewLine);
+            TxtAi.AppendText(item.Detail + Environment.NewLine + Environment.NewLine);
         }
+
+        int score = 0;
+        _ = int.TryParse(TxtScoreHero.Text, out score);
+
+        var tips = _aiAdvisor.Analyze(
+            _engine.Logs.Cast<object>(),
+            _engine.CompletedTasks.Cast<object>(),
+            score,
+            _lastWorkerCount,
+            _lastWorkerMode,
+            0,
+            0);
+
+        TxtAi.AppendText("Analyse AiAdvisorService" + Environment.NewLine);
+        TxtAi.AppendText("------------------------" + Environment.NewLine);
+        TxtAi.AppendText(_aiAdvisor.RenderText(tips));
         TxtAi.ScrollToHome();
     }
-
     private void Append(string text)
     {
         TxtLog.AppendText(text + Environment.NewLine);
@@ -333,4 +381,6 @@ public partial class MainWindow : Window
         base.OnClosed(e);
     }
 }
+
+
 
