@@ -7,16 +7,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>EPFOptimizerPro</AssemblyName>
     <RootNamespace>EPFOptimizerPro</RootNamespace>
-    <Version>3.8.7</Version>
-    <AssemblyVersion>3.8.7.0</AssemblyVersion>
-    <FileVersion>3.8.7.0</FileVersion>
-    <InformationalVersion>3.8.7-code-optimization-compilefix2</InformationalVersion>
+    <Version>3.8.8</Version>
+    <AssemblyVersion>3.8.8.0</AssemblyVersion>
+    <FileVersion>3.8.8.0</FileVersion>
+    <InformationalVersion>3.8.8-ai-memory-center</InformationalVersion>
     <Company>EPF Normandie</Company>
     <Product>EPF Optimizer Pro</Product>
     <Authors>EPF Normandie - Patrick JARDIN</Authors>
     <Description>EPF Optimizer Pro Premium avec correction des noms de contrôles, dashboard fluide et workers adaptatifs CPU/RAM.</Description>
   </PropertyGroup>
 </Project>
+
 
 
 

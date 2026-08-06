@@ -329,17 +329,30 @@ public partial class MainWindow : Window
         }
     }
 
-    private void BtnOpenLearning_Click(object sender, RoutedEventArgs e)
+        private void BtnOpenLearning_Click(object sender, RoutedEventArgs e)
     {
-        string file = _engine.LearningFilePath;
-        if (File.Exists(file))
+        string folder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "EPFOptimizerPro");
+
+        Directory.CreateDirectory(folder);
+
+        string aiHistoryFile = Path.Combine(folder, "ai_score_history.json");
+        if (!File.Exists(aiHistoryFile))
         {
-            Process.Start(new ProcessStartInfo(file) { UseShellExecute = true });
+            File.WriteAllText(aiHistoryFile, "[]");
         }
-        else
+
+        string learningFile = _engine.LearningFilePath;
+        string learningFolder = Path.GetDirectoryName(learningFile) ?? folder;
+        if (!Directory.Exists(learningFolder))
         {
-            MessageBox.Show("La mémoire IA sera créée après le premier lancement.", "EPF Optimizer Pro", MessageBoxButton.OK, MessageBoxImage.Information);
+            Directory.CreateDirectory(learningFolder);
         }
+
+        Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
+        Append("[INFO] Centre mémoire IA ouvert : " + folder);
+        Append("[INFO] Historique IA : " + aiHistoryFile);
     }
 
     private async void BtnCheckUpdate_Click(object sender, RoutedEventArgs e)
@@ -461,6 +474,7 @@ public partial class MainWindow : Window
         base.OnClosed(e);
     }
 }
+
 
 
 
