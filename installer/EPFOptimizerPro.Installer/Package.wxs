@@ -1,5 +1,5 @@
 ﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <?define ProductVersion = "3.9.18" ?>
+  <?define ProductVersion = "3.9.20" ?>
 <?define PublishDir = "$(sys.SOURCEFILEDIR)..\..\artifacts\publish\EPFOptimizerPro" ?><Package Name="EPF Optimizer Pro"
            Manufacturer="EPF Optimizer Pro"
            Version="$(var.ProductVersion)"
@@ -42,6 +42,7 @@
   <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
 </Package>
 </Wix>
+
 
 
 

@@ -7,10 +7,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>EPFOptimizerPro</AssemblyName>
     <RootNamespace>EPFOptimizerPro</RootNamespace>
-    <Version>3.9.18</Version>
-    <AssemblyVersion>3.9.18.0</AssemblyVersion>
-    <FileVersion>3.9.18.0</FileVersion>
-    <InformationalVersion>3.9.18-app-icon-msi</InformationalVersion>
+    <Version>3.9.20</Version>
+    <AssemblyVersion>3.9.20.0</AssemblyVersion>
+    <FileVersion>3.9.20.0</FileVersion>
+    <InformationalVersion>3.9.20-version-only-msi-update-test</InformationalVersion>
     <Company>EPF Normandie</Company>
     <Product>EPF Optimizer Pro</Product>
     <Authors>EPF Normandie - Patrick JARDIN</Authors>
@@ -18,6 +18,11 @@
       <ApplicationIcon>Assets\EPFOptimizerPro.ico</ApplicationIcon>
   </PropertyGroup>
 </Project>
+
+
+
+
+
 
 
 
