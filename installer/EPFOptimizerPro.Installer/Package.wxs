@@ -1,0 +1,49 @@
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <?define ProductVersion = "3.9.18" ?>
+<?define PublishDir = "$(sys.SOURCEFILEDIR)..\..\artifacts\publish\EPFOptimizerPro" ?><Package Name="EPF Optimizer Pro"
+           Manufacturer="EPF Optimizer Pro"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="{C9E1E8FE-2A01-45F1-8F76-D1D9F676D8A6}"
+           Scope="perMachine">
+
+    <SummaryInformation Description="EPF Optimizer Pro installer" Manufacturer="EPF Optimizer Pro" />
+    <MajorUpgrade DowngradeErrorMessage="Une version plus récente de EPF Optimizer Pro est déjà installée." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="EPF Optimizer Pro" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="EPF Optimizer Pro" />
+    </StandardDirectory>
+
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="$(var.PublishDir)\**\*.*">
+        <Exclude Files="*.pdb" />
+      </Files>
+    </ComponentGroup>
+
+    <Component Id="StartMenuShortcut" Directory="ApplicationProgramsFolder" Guid="*">
+      <Shortcut Id="ApplicationStartMenuShortcut"
+                Name="EPF Optimizer Pro"
+                Description="Lancer EPF Optimizer Pro"
+                Target="[INSTALLFOLDER]EPFOptimizerPro.exe"
+                WorkingDirectory="INSTALLFOLDER"  Icon="AppIcon.ico" />
+      <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\EPFOptimizerPro" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Feature Id="MainFeature" Title="EPF Optimizer Pro" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+    <Icon Id="AppIcon.ico" SourceFile="..\..\src\EPFOptimizerPro\Assets\EPFOptimizerPro.ico" />
+  <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+</Package>
+</Wix>
+
+
+
+
+
