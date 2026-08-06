@@ -7,16 +7,17 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>EPFOptimizerPro</AssemblyName>
     <RootNamespace>EPFOptimizerPro</RootNamespace>
-    <Version>3.9.15</Version>
-    <AssemblyVersion>3.9.15.0</AssemblyVersion>
-    <FileVersion>3.9.15.0</FileVersion>
-    <InformationalVersion>3.9.15-smart-home-tasks</InformationalVersion>
+    <Version>3.9.16</Version>
+    <AssemblyVersion>3.9.16.0</AssemblyVersion>
+    <FileVersion>3.9.16.0</FileVersion>
+    <InformationalVersion>3.9.16-version-only-update-test</InformationalVersion>
     <Company>EPF Normandie</Company>
     <Product>EPF Optimizer Pro</Product>
     <Authors>EPF Normandie - Patrick JARDIN</Authors>
     <Description>EPF Optimizer Pro Premium avec correction des noms de contrôles, dashboard fluide et workers adaptatifs CPU/RAM.</Description>
   </PropertyGroup>
 </Project>
+
 
 
 
