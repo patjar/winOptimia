@@ -1,3 +1,9 @@
 bin/nobj/n.vs/n*.usern*.suo
 n**/bin/n**/obj/n*.bak-v3.7*nApply-v3.7*.ps1nREADME-v3.7*-FIX.txt
 nsrc/EPFOptimizerPro/bin/nsrc/EPFOptimizerPro/obj/nsrc/WinOptimia/bin/nsrc/WinOptimia/obj/
+
+*.bak-v3*
+Apply-v3*.ps1
+README-v3*.txt
+src/EPFOptimizerPro/bin/
+src/EPFOptimizerPro/obj/

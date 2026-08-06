@@ -19,7 +19,7 @@ public sealed class GitHubUpdateService
         _client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 
-    public string CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version?.ToString(4) ?? "0.0.0";
+    public string CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
 
     public async Task<UpdateCheckResult> CheckLatestAsync(CancellationToken token)
     {
@@ -46,7 +46,7 @@ public sealed class GitHubUpdateService
             return NoEpfRelease("Aucune release contenant un ZIP EPFOptimizerPro n'a été trouvée. Les releases WinOptimia sont ignorées.");
         }
 
-        string latest = selected.Version!.ToString(4);
+        string latest = selected.Version!.ToString();
         bool available = IsNewer(latest, CurrentVersion);
 
         return new UpdateCheckResult
@@ -197,3 +197,4 @@ public sealed class GitHubUpdateService
         return fileName;
     }
 }
+

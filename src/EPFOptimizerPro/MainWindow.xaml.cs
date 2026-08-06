@@ -13,6 +13,7 @@ namespace EPFOptimizerPro;
 public partial class MainWindow : Window
 {
     private readonly SystemMetrics _metrics = new();
+    private readonly SystemCountersService _systemCounters = new();
     private readonly AiAdvisorService _aiAdvisor = new();
     private readonly HealthScoreService _healthScores = new();
     private readonly AiScoreHistoryService _aiHistory = new();
@@ -39,17 +40,51 @@ public partial class MainWindow : Window
         ActiveTasksItems.ItemsSource = _engine.ActiveTasks;
         CompletedTasksItems.ItemsSource = _engine.CompletedTasks;
         UpdateDashboardSummary();
+        UpdateSystemCounters();
         _timer.Interval = TimeSpan.FromMilliseconds(500);
         _timer.Tick += (_, _) => Tick();
         _timer.Start();
         _adminBlinkTimer.Interval = TimeSpan.FromMilliseconds(650);
         _adminBlinkTimer.Tick += (_, _) => AdminBlinkTick();
         RenderRecommendations(_engine.CurrentRecommendations);
+        ShowStartupAdvice();
         UpdateAdminVisualStatus();
         RenderAiAdvisor(0, 0);
         TxtUpdateStatus.Text = "Mise à jour : non vérifiée";
     }
 
+    private void ShowStartupAdvice()
+    {
+        TxtActionHint.Text = "Conseil : lancez Audit seul pour analyser le poste, ou Optimiser pour corriger automatiquement.";
+        TxtStep.Text = "Conseil de démarrage";
+        TxtPercent.Text = "0 %";
+        ProgressGlobal.Value = 0;
+
+        if (TxtAi.Text.Length == 0)
+        {
+            TxtAi.Text = "Conseil de démarrage\n\nLancez Audit seul pour obtenir un diagnostic du poste. Utilisez Optimiser quand vous voulez appliquer les corrections automatiquement.\n";
+        }
+    }
+
+    private void UpdateSystemCounters()
+    {
+        try
+        {
+            int openHandles = _systemCounters.GetOpenHandleCount();
+            var services = _systemCounters.GetServiceCounts();
+
+            TxtFilesCard.Text = openHandles.ToString("N0");
+            ProgressFilesMini.Value = Math.Clamp(openHandles / 2000.0, 0, 100);
+
+            TxtServicesCard.Text = services.Running + " / " + services.Resting;
+            int total = services.Running + services.Resting;
+            ProgressServicesMini.Value = total <= 0 ? 0 : Math.Clamp(services.Running * 100.0 / total, 0, 100);
+        }
+        catch
+        {
+            // Indicateurs informatifs uniquement : aucune erreur visuelle ne doit bloquer l'application.
+        }
+    }
     private void WireEngine()
     {
         _engine.GlobalProgressChanged += OnGlobalProgressChanged;
@@ -76,6 +111,7 @@ public partial class MainWindow : Window
         TxtCpuCard.Text = $"{cpu:0} %";
         TxtRamCard.Text = $"{ram:0} %";
         UpdateDashboardSummary();
+        UpdateSystemCounters();
     }
 
     private async void BtnAudit_Click(object sender, RoutedEventArgs e) => await RunAsync(false);
@@ -144,6 +180,13 @@ public partial class MainWindow : Window
             activeNames = "aucune tâche active";
         }
 
+        bool hasActiveVisibleTasks = _engine.ActiveTasks.Any(t =>
+            t.Status.Equals("En cours", StringComparison.OrdinalIgnoreCase) ||
+            t.Status.Equals("En attente", StringComparison.OrdinalIgnoreCase));
+
+        TxtNoActiveTasks.Visibility = hasActiveVisibleTasks
+            ? Visibility.Collapsed
+            : Visibility.Visible;
         TxtDashboardSummary.Text = $"  |  {done}/{total} terminées  |  {running} en cours : {activeNames}  |  {waiting} attente  |  {warn} avert.  |  {error} erreur";
     }
 
@@ -515,6 +558,8 @@ public partial class MainWindow : Window
         base.OnClosed(e);
     }
 }
+
+
 
 
 
