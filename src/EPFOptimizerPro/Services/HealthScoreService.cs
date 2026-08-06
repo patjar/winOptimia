@@ -1,5 +1,4 @@
-﻿using System.Reflection;
-using System.Text;
+﻿using System.Text;
 using EPFOptimizerPro.Models;
 
 namespace EPFOptimizerPro.Services;
@@ -13,16 +12,18 @@ public sealed class HealthScoreService
         int workerCount,
         string workerMode)
     {
-        var logTexts = logs.Select(x => x?.ToString() ?? string.Empty).ToList();
-        var taskTexts = completedTasks.Select(x => x?.ToString() ?? string.Empty).ToList();
-        var allTexts = logTexts.Concat(taskTexts).ToList();
+        var texts = logs
+            .Concat(completedTasks)
+            .Select(x => x?.ToString() ?? string.Empty)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToArray();
 
-        int errors = CountContains(allTexts, "erreur") + CountContains(allTexts, "error") + CountContains(allTexts, "failed");
-        int warnings = CountContains(allTexts, "avert") + CountContains(allTexts, "warn") + CountContains(allTexts, "attention");
-        int accessDenied = CountContains(allTexts, "access denied") + CountContains(allTexts, "acces refuse") + CountContains(allTexts, "accès refusé");
-        int updateHits = CountContains(allTexts, "update") + CountContains(allTexts, "mise a jour") + CountContains(allTexts, "mise à jour");
-        int diskHits = CountContains(allTexts, "volume") + CountContains(allTexts, "disque") + CountContains(allTexts, "storage");
-        int sfcHits = CountContains(allTexts, "sfc");
+        int errors = CountContains(texts, "erreur") + CountContains(texts, "error") + CountContains(texts, "failed");
+        int warnings = CountContains(texts, "avert") + CountContains(texts, "warn") + CountContains(texts, "attention");
+        int accessDenied = CountContains(texts, "access denied") + CountContains(texts, "accès refusé") + CountContains(texts, "acces refuse");
+        int updateHits = CountContains(texts, "update") + CountContains(texts, "mise à jour") + CountContains(texts, "mise a jour");
+        int diskHits = CountContains(texts, "volume") + CountContains(texts, "disque") + CountContains(texts, "storage");
+        int sfcHits = CountContains(texts, "sfc");
 
         int safeBase = baseScore <= 0 ? 90 : Clamp(baseScore);
 
@@ -31,10 +32,7 @@ public sealed class HealthScoreService
         int windowsUpdate = Clamp(88 - Math.Max(updateHits - 1, 0) * 4);
         int storage = Clamp(90 + Math.Min(diskHits, 3) * 2 - accessDenied * 4);
         int performance = Clamp(90 + Math.Min(workerCount, 6) - warnings * 3 - errors * 5);
-
         int global = Clamp((performance + security + storage + windowsUpdate + stability) / 5);
-
-        string summary = BuildSummary(global, performance, security, storage, windowsUpdate, stability, errors, warnings, workerCount, workerMode);
 
         return new HealthScore
         {
@@ -44,19 +42,19 @@ public sealed class HealthScoreService
             Storage = storage,
             WindowsUpdate = windowsUpdate,
             Stability = stability,
-            Summary = summary
+            Summary = BuildSummary(global, windowsUpdate, storage, errors, warnings, workerCount, workerMode)
         };
     }
 
     public string RenderText(HealthScore score)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Sante globale : {score.Global}/100");
+        sb.AppendLine($"Santé globale : {score.Global}/100");
         sb.AppendLine($"Performance : {score.Performance}/100");
-        sb.AppendLine($"Securite : {score.Security}/100");
+        sb.AppendLine($"Sécurité : {score.Security}/100");
         sb.AppendLine($"Stockage : {score.Storage}/100");
         sb.AppendLine($"Windows Update : {score.WindowsUpdate}/100");
-        sb.AppendLine($"Stabilite : {score.Stability}/100");
+        sb.AppendLine($"Stabilité : {score.Stability}/100");
         sb.AppendLine();
         sb.AppendLine("Analyse :");
         sb.AppendLine(score.Summary);
@@ -65,7 +63,16 @@ public sealed class HealthScoreService
 
     private static int CountContains(IEnumerable<string> texts, string pattern)
     {
-        return texts.Count(x => x.Contains(pattern, StringComparison.OrdinalIgnoreCase));
+        int count = 0;
+        foreach (string text in texts)
+        {
+            if (text.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private static int Clamp(int value)
@@ -75,11 +82,8 @@ public sealed class HealthScoreService
 
     private static string BuildSummary(
         int global,
-        int performance,
-        int security,
-        int storage,
         int windowsUpdate,
-        int stability,
+        int storage,
         int errors,
         int warnings,
         int workerCount,
@@ -87,42 +91,35 @@ public sealed class HealthScoreService
     {
         var points = new List<string>();
 
-        if (global >= 90)
-        {
-            points.Add("Le poste est globalement dans un etat tres sain.");
-        }
-        else if (global >= 75)
-        {
-            points.Add("Le poste est utilisable mais certaines categories meritent une surveillance.");
-        }
-        else
-        {
-            points.Add("Le poste presente plusieurs signaux a surveiller avant une optimisation agressive.");
-        }
+        points.Add(global >= 90
+            ? "Le poste est globalement dans un état très sain."
+            : global >= 75
+                ? "Le poste est utilisable, avec quelques points à surveiller."
+                : "Le poste présente plusieurs signaux à surveiller avant une optimisation agressive.");
 
         if (errors > 0)
         {
-            points.Add($"Des erreurs ont ete detectees dans les journaux : {errors} occurrence(s).");
+            points.Add($"Erreurs détectées dans les journaux : {errors} occurrence(s). Priorité à la stabilité.");
         }
 
         if (warnings > 0)
         {
-            points.Add($"Des avertissements ont ete detectes : {warnings} occurrence(s). L'IA recommande de les suivre sur les prochains lancements.");
+            points.Add($"Avertissements détectés : {warnings} occurrence(s). L'IA recommande un suivi sur les prochains lancements.");
         }
 
         if (windowsUpdate < 85)
         {
-            points.Add("Windows Update ressort comme une zone a surveiller.");
+            points.Add("Windows Update ressort comme une zone à surveiller.");
         }
 
         if (storage >= 90)
         {
-            points.Add("Le stockage ne presente pas de signal defavorable dans cette execution.");
+            points.Add("Le stockage ne présente pas de signal défavorable dans cette exécution.");
         }
 
         if (workerCount > 0)
         {
-            points.Add($"Mode workers observe : {workerCount} worker(s), mode {workerMode}.");
+            points.Add($"Mode workers observé : {workerCount} worker(s), mode {workerMode}.");
         }
 
         return string.Join(Environment.NewLine, points);

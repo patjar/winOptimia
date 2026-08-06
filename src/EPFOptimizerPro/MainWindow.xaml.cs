@@ -14,6 +14,7 @@ public partial class MainWindow : Window
     private readonly SystemMetrics _metrics = new();
     private readonly AiAdvisorService _aiAdvisor = new();
     private readonly HealthScoreService _healthScores = new();
+    private readonly AiScoreHistoryService _aiHistory = new();
     private readonly DispatcherTimer _timer = new();
     private readonly string[] _frames = { "◐", "◓", "◑", "◒" };
     private readonly GitHubUpdateService _updateService = new();
@@ -88,7 +89,7 @@ public partial class MainWindow : Window
         {
             _lastReport = await _engine.RunAsync(optimize, _cts.Token, cpuStart, memoryStart);
             TxtActionHint.Text = "Tâches terminées. Rapport disponible.";
-            RefreshAiDashboard(cpuStart, memoryStart);
+            RefreshAiDashboardV2(cpuStart, memoryStart);
         }
         catch (OperationCanceledException)
         {
@@ -168,46 +169,15 @@ public partial class MainWindow : Window
         TxtAi.AppendText("Scores IA par categorie" + Environment.NewLine);
         TxtAi.AppendText("-----------------------" + Environment.NewLine);
         TxtAi.AppendText(_healthScores.RenderText(health));
+        TxtAi.AppendText(Environment.NewLine);
         TxtAi.ScrollToHome();
     }
-        private void RenderRecommendations(IReadOnlyList<AiRecommendation> recommendations)
+            private void RenderRecommendations(IReadOnlyList<AiRecommendation> recommendations)
     {
         TxtAi.Clear();
-
-        int score = 0;
-        _ = int.TryParse(TxtScoreHero.Text, out score);
-
-        var health = _healthScores.Compute(
-            _engine.Logs.Cast<object>(),
-            _engine.CompletedTasks.Cast<object>(),
-            score,
-            _lastWorkerCount,
-            _lastWorkerMode);
-
-        TxtAi.AppendText("Assistant IA local - synthese" + Environment.NewLine);
-        TxtAi.AppendText("============================" + Environment.NewLine + Environment.NewLine);
-
-        TxtAi.AppendText("Scores IA par categorie" + Environment.NewLine);
-        TxtAi.AppendText("-----------------------" + Environment.NewLine);
-        TxtAi.AppendText(_healthScores.RenderText(health));
-        TxtAi.AppendText(Environment.NewLine);
-
-        var tips = _aiAdvisor.Analyze(
-            _engine.Logs.Cast<object>(),
-            _engine.CompletedTasks.Cast<object>(),
-            score,
-            _lastWorkerCount,
-            _lastWorkerMode,
-            0,
-            0);
-
-        TxtAi.AppendText("Conseils AiAdvisorService" + Environment.NewLine);
-        TxtAi.AppendText("------------------------" + Environment.NewLine);
-        TxtAi.AppendText(_aiAdvisor.RenderText(tips));
-        TxtAi.AppendText(Environment.NewLine);
-
-        TxtAi.AppendText("Historique IA existant" + Environment.NewLine);
-        TxtAi.AppendText("---------------------" + Environment.NewLine);
+        TxtAi.AppendText("Assistant IA local" + Environment.NewLine);
+        TxtAi.AppendText("==================" + Environment.NewLine + Environment.NewLine);
+        TxtAi.AppendText("Lance un audit ou une optimisation pour générer la synthèse IA." + Environment.NewLine + Environment.NewLine);
 
         foreach (var item in recommendations)
         {
@@ -217,7 +187,7 @@ public partial class MainWindow : Window
 
         TxtAi.ScrollToHome();
     }
-    private void RefreshAiDashboard(double cpuStart, double memoryStart)
+            private void RefreshAiDashboard(double cpuStart, double memoryStart)
     {
         int score = 0;
         _ = int.TryParse(TxtScoreHero.Text, out score);
@@ -229,9 +199,10 @@ public partial class MainWindow : Window
             _lastWorkerCount,
             _lastWorkerMode);
 
+        _aiHistory.SaveSnapshot(health, _lastWorkerCount, _lastWorkerMode);
+
         TxtAiHeadline.Text = $"Santé IA : {health.Global}/100";
         TxtAiSubScore.Text = $"Perf {health.Performance} | Sécu {health.Security} | Stockage {health.Storage} | Update {health.WindowsUpdate} | Stabilité {health.Stability}";
-        TxtAiAdvice.Text = health.Summary;
 
         var tips = _aiAdvisor.Analyze(
             _engine.Logs.Cast<object>(),
@@ -246,6 +217,48 @@ public partial class MainWindow : Window
         TxtAi.AppendText("Synthèse IA détaillée" + Environment.NewLine);
         TxtAi.AppendText("====================" + Environment.NewLine + Environment.NewLine);
         TxtAi.AppendText(_healthScores.RenderText(health));
+        TxtAi.AppendText(Environment.NewLine);
+        TxtAi.AppendText(Environment.NewLine);
+        TxtAi.AppendText("Conseils" + Environment.NewLine);
+        TxtAi.AppendText("--------" + Environment.NewLine);
+        TxtAi.AppendText(_aiAdvisor.RenderText(tips));
+        TxtAi.ScrollToHome();
+    }
+
+    private void RefreshAiDashboardV2(double cpuStart, double memoryStart)
+    {
+        int score = 0;
+        _ = int.TryParse(TxtScoreHero.Text, out score);
+
+        var health = _healthScores.Compute(
+            _engine.Logs.Cast<object>(),
+            _engine.CompletedTasks.Cast<object>(),
+            score,
+            _lastWorkerCount,
+            _lastWorkerMode);
+
+        _aiHistory.SaveSnapshot(health, _lastWorkerCount, _lastWorkerMode);
+        string trendText = _aiHistory.GetTrendText();
+
+        TxtAiHeadline.Text = $"Santé IA : {health.Global}/100";
+        TxtAiSubScore.Text = $"Perf {health.Performance} | Sécu {health.Security} | Stockage {health.Storage} | Update {health.WindowsUpdate} | Stabilité {health.Stability}";
+        TxtAiAdvice.Text = health.Summary + Environment.NewLine + trendText;
+
+        var tips = _aiAdvisor.Analyze(
+            _engine.Logs.Cast<object>(),
+            _engine.CompletedTasks.Cast<object>(),
+            score,
+            _lastWorkerCount,
+            _lastWorkerMode,
+            cpuStart,
+            memoryStart);
+
+        TxtAi.Clear();
+        TxtAi.AppendText("Synthèse IA détaillée" + Environment.NewLine);
+        TxtAi.AppendText("====================" + Environment.NewLine + Environment.NewLine);
+        TxtAi.AppendText(_healthScores.RenderText(health));
+        TxtAi.AppendText(Environment.NewLine);
+        TxtAi.AppendText(trendText + Environment.NewLine);
         TxtAi.AppendText(Environment.NewLine);
         TxtAi.AppendText("Conseils" + Environment.NewLine);
         TxtAi.AppendText("--------" + Environment.NewLine);
@@ -448,6 +461,10 @@ public partial class MainWindow : Window
         base.OnClosed(e);
     }
 }
+
+
+
+
 
 
 
