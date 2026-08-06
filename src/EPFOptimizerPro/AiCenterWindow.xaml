@@ -1,0 +1,96 @@
+﻿<Window x:Class="EPFOptimizerPro.AiCenterWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Centre IA - EPF Optimizer Pro" Height="720" Width="980"
+        WindowStartupLocation="CenterOwner" Background="#020617" FontFamily="Segoe UI">
+    <Window.Resources>
+        <SolidColorBrush x:Key="Panel" Color="#111827"/>
+        <SolidColorBrush x:Key="BorderPremium" Color="#26364F"/>
+        <SolidColorBrush x:Key="TextMain" Color="#F8FAFC"/>
+        <SolidColorBrush x:Key="TextMuted" Color="#94A3B8"/>
+        <SolidColorBrush x:Key="Sky" Color="#38BDF8"/>
+        <SolidColorBrush x:Key="Green" Color="#22C55E"/>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextMain}"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="BorderBrush" Value="#60A5FA"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="0,0,10,10"/>
+        </Style>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Panel}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderPremium}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="18"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,12,12"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="Centre IA" FontSize="30" FontWeight="Bold" Foreground="{StaticResource Sky}"/>
+                <TextBlock Text="Pilotage local de la mémoire IA, de l'historique des scores et des fichiers d'apprentissage." Foreground="{StaticResource TextMuted}" Margin="0,6,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.1*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource Card}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="Synthèse IA" FontSize="22" FontWeight="Bold" Foreground="{StaticResource Sky}" Margin="0,0,0,10"/>
+                    <TextBox x:Name="TxtSummary" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                             Background="#050A16" Foreground="#E5E7EB" BorderBrush="#26364F" FontFamily="Consolas" Padding="12"/>
+                </DockPanel>
+            </Border>
+
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Style="{StaticResource Card}" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="Actions" FontSize="22" FontWeight="Bold" Foreground="{StaticResource Sky}" Margin="0,0,0,12"/>
+                        <WrapPanel>
+                            <Button Content="Rafraîchir" MinWidth="120" Click="BtnRefresh_Click"/>
+                            <Button Content="Ouvrir dossier" MinWidth="130" Click="BtnOpenFolder_Click"/>
+                            <Button Content="Historique IA" MinWidth="130" Click="BtnOpenHistory_Click"/>
+                            <Button Content="Learning" MinWidth="120" Click="BtnOpenLearning_Click"/>
+                            <Button Content="Résumé" MinWidth="120" Click="BtnOpenSummary_Click"/>
+                            <Button Content="Réinitialiser historique" MinWidth="180" Background="#DC2626" BorderBrush="#F87171" Click="BtnResetHistory_Click"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="Fichiers mémoire" FontSize="22" FontWeight="Bold" Foreground="{StaticResource Sky}" Margin="0,0,0,10"/>
+                        <TextBox x:Name="TxtFiles" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                 Background="#050A16" Foreground="#E5E7EB" BorderBrush="#26364F" FontFamily="Consolas" Padding="12"/>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Fermer" MinWidth="120" Click="BtnClose_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

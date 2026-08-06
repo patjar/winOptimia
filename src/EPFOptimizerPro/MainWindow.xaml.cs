@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using System.Security.Principal;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media;
@@ -15,7 +16,10 @@ public partial class MainWindow : Window
     private readonly AiAdvisorService _aiAdvisor = new();
     private readonly HealthScoreService _healthScores = new();
     private readonly AiScoreHistoryService _aiHistory = new();
+    private readonly AiMemoryReportService _aiMemoryReport = new();
     private readonly DispatcherTimer _timer = new();
+    private readonly DispatcherTimer _adminBlinkTimer = new();
+    private bool _adminBlinkState;
     private readonly string[] _frames = { "◐", "◓", "◑", "◒" };
     private readonly GitHubUpdateService _updateService = new();
     private AdaptiveTaskEngine _engine;
@@ -38,7 +42,10 @@ public partial class MainWindow : Window
         _timer.Interval = TimeSpan.FromMilliseconds(500);
         _timer.Tick += (_, _) => Tick();
         _timer.Start();
+        _adminBlinkTimer.Interval = TimeSpan.FromMilliseconds(650);
+        _adminBlinkTimer.Tick += (_, _) => AdminBlinkTick();
         RenderRecommendations(_engine.CurrentRecommendations);
+        UpdateAdminVisualStatus();
         RenderAiAdvisor(0, 0);
         TxtUpdateStatus.Text = "Mise à jour : non vérifiée";
     }
@@ -304,6 +311,55 @@ public partial class MainWindow : Window
         TxtScoreHero.Foreground = score >= 85 ? BrushFromHex("#22C55E") : score >= 65 ? BrushFromHex("#F59E0B") : BrushFromHex("#EF4444");
     }
 
+        private void UpdateAdminVisualStatus()
+    {
+        bool isAdmin = IsRunningAsAdministrator();
+
+        TxtAdminStatus.Text = isAdmin ? "Admin : oui" : "Admin : non";
+
+        if (isAdmin)
+        {
+            _adminBlinkTimer.Stop();
+            TxtAdminStatus.Visibility = Visibility.Visible;
+            TxtAdminStatus.Foreground = BrushFromHex("#22C55E");
+            Append("[INFO] Application lancée avec privilèges administrateur.");
+        }
+        else
+        {
+            TxtAdminStatus.Visibility = Visibility.Visible;
+            TxtAdminStatus.Foreground = BrushFromHex("#EF4444");
+            _adminBlinkState = true;
+            _adminBlinkTimer.Start();
+            Append("[WARN] Application lancée sans privilèges administrateur. Certaines optimisations système peuvent être limitées.");
+            TxtActionHint.Text = "Mode non administrateur : certaines optimisations système peuvent être limitées.";
+        }
+    }
+
+    private void AdminBlinkTick()
+    {
+        if (TxtAdminStatus.Text != "Admin : non")
+        {
+            _adminBlinkTimer.Stop();
+            TxtAdminStatus.Visibility = Visibility.Visible;
+            return;
+        }
+
+        _adminBlinkState = !_adminBlinkState;
+        TxtAdminStatus.Foreground = _adminBlinkState ? BrushFromHex("#EF4444") : BrushFromHex("#7F1D1D");
+    }
+    private static bool IsRunningAsAdministrator()
+    {
+        try
+        {
+            using WindowsIdentity identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+        catch
+        {
+            return false;
+        }
+    }
     private static SolidColorBrush BrushFromHex(string hex)
     {
         return (SolidColorBrush)new BrushConverter().ConvertFromString(hex)!;
@@ -329,30 +385,15 @@ public partial class MainWindow : Window
         }
     }
 
-        private void BtnOpenLearning_Click(object sender, RoutedEventArgs e)
+                private void BtnOpenLearning_Click(object sender, RoutedEventArgs e)
     {
-        string folder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "EPFOptimizerPro");
-
-        Directory.CreateDirectory(folder);
-
-        string aiHistoryFile = Path.Combine(folder, "ai_score_history.json");
-        if (!File.Exists(aiHistoryFile))
+        var window = new AiCenterWindow
         {
-            File.WriteAllText(aiHistoryFile, "[]");
-        }
+            Owner = this
+        };
 
-        string learningFile = _engine.LearningFilePath;
-        string learningFolder = Path.GetDirectoryName(learningFile) ?? folder;
-        if (!Directory.Exists(learningFolder))
-        {
-            Directory.CreateDirectory(learningFolder);
-        }
-
-        Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
-        Append("[INFO] Centre mémoire IA ouvert : " + folder);
-        Append("[INFO] Historique IA : " + aiHistoryFile);
+        window.ShowDialog();
+        Append("[INFO] Centre IA ouvert.");
     }
 
     private async void BtnCheckUpdate_Click(object sender, RoutedEventArgs e)
@@ -474,6 +515,10 @@ public partial class MainWindow : Window
         base.OnClosed(e);
     }
 }
+
+
+
+
 
 
 
