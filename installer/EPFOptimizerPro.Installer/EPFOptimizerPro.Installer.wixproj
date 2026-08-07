@@ -2,12 +2,14 @@
   <PropertyGroup>
     <OutputType>Package</OutputType>
     <InstallerPlatform>x64</InstallerPlatform>
-    <OutputName>EPFOptimizerPro-v3.9.24-setup</OutputName>
-    <ProductVersion>3.9.24</ProductVersion>
+    <OutputName>EPFOptimizerPro-v3.9.26-setup</OutputName>
+    <ProductVersion>3.9.26</ProductVersion>
     <PublishDir Condition="'$(PublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\publish\EPFOptimizerPro</PublishDir>
       <AcceptEula>wix7</AcceptEula>
 </PropertyGroup>
 </Project>
+
+
 
 
 
