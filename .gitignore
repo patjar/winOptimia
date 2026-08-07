@@ -7,3 +7,9 @@ Apply-v3*.ps1
 README-v3*.txt
 src/EPFOptimizerPro/bin/
 src/EPFOptimizerPro/obj/
+# Build outputs
+**/bin/
+**/obj/
+artifacts/
+*.msi
+*.zip

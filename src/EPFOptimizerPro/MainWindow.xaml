@@ -1,7 +1,7 @@
 ﻿<Window x:Class="EPFOptimizerPro.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="EPF Optimizer Pro Premium IA v3.9.32" Height="940" Width="1320" MinHeight="860" MinWidth="1180"
+        Title="EPF Optimizer Pro Premium IA v3.9.33" Height="940" Width="1320" MinHeight="860" MinWidth="1180"
         WindowStartupLocation="CenterScreen" WindowState="Maximized" Background="#F3F4F6" FontFamily="Segoe UI">
     <Window.Resources>
         <LinearGradientBrush x:Key="PageGradient" StartPoint="0,0" EndPoint="1,1">
@@ -85,7 +85,7 @@
                 </Grid.ColumnDefinitions>
                 <StackPanel>
                     <TextBlock Text="EPF Optimizer Pro" FontSize="15" Foreground="{StaticResource Sky}" FontWeight="SemiBold"/>
-                    <TextBlock Text="Tableau de bord EPF Optimizer Pro v3.9.32" FontSize="34" FontWeight="Bold" Margin="0,2,0,4"/>
+                    <TextBlock Text="Tableau de bord EPF Optimizer Pro v3.9.33" FontSize="34" FontWeight="Bold" Margin="0,2,0,4"/>
                     <TextBlock Text="Vue synthétique : état du poste, diagnostics, IA locale et actions rapides." Foreground="{StaticResource TextMuted}" FontSize="12"/>
                 </StackPanel>
                 <Grid Grid.Column="1">
@@ -158,7 +158,7 @@
                                 <Button x:Name="BtnOpenReport" Content="Rapport" MinWidth="126" Click="BtnOpenReport_Click"/>
                                 <Button x:Name="BtnOpenLearning" Content="Centre IA" MinWidth="126" Click="BtnOpenLearning_Click"/>
                                 <Button x:Name="BtnCheckUpdate" Content="Mise à jour" MinWidth="126" Click="BtnCheckUpdate_Click"/>
-                                <Button x:Name="BtnDownloadUpdate" Content="Télécharger update" MinWidth="150" Click="BtnDownloadUpdate_Click"/>
+                                <Button x:Name="BtnDownloadUpdate" Content="Telecharger update" MinWidth="150" Click="BtnDownloadUpdate_Click"/>
                             </WrapPanel>
                         </StackPanel>
 
