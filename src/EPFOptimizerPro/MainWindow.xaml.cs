@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Text;
+using System.Diagnostics;
 using System.IO;
 using System.Security.Principal;
 using System.Linq;
@@ -24,8 +25,11 @@ public partial class MainWindow : Window
     private readonly string[] _frames = { "◐", "◓", "◑", "◒" };
     private readonly GitHubUpdateService _updateService = new();
     private AdaptiveTaskEngine _engine;
-    private CancellationTokenSource? _cts;
+    private CancellationTokenSource? _cts;
+    private UpdateCheckResult? _lastCheck = null;
+#pragma warning disable CS0649
     private CancellationTokenSource? _updateCts;
+#pragma warning restore CS0649
     private UpdateCheckResult? _lastUpdateCheck;
     private int _frameIndex;
     private int _lastWorkerCount;
@@ -477,61 +481,94 @@ public partial class MainWindow : Window
             BtnCheckUpdate.IsEnabled = true;
         }
     }
-    private async void BtnDownloadUpdate_Click(object sender, RoutedEventArgs e)
+        private async void BtnDownloadUpdate_Click(object sender, RoutedEventArgs e)
     {
-        if (_lastUpdateCheck?.Asset is null || _cts is not null || _updateCts is not null) return;
-
-        _updateCts = new CancellationTokenSource();
-        BtnCheckUpdate.IsEnabled = false;
-        BtnDownloadUpdate.IsEnabled = false;
-        ProgressGlobal.Value = 0;
-        TxtPercent.Text = "0 %";
-        TxtStep.Text = "Téléchargement update";
-        TxtUpdateStatus.Text = "Téléchargement de l’archive GitHub...";
-        Append("[INFO] Téléchargement update : " + _lastUpdateCheck.Asset.Name);
-
         try
         {
-            Progress<double> progress = new(value =>
+            using var updateCts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+
+            // Si l'etat de verification a ete perdu, on relance une verification GitHub automatiquement.
+            if (_lastCheck?.Asset is null)
             {
-                Dispatcher.Invoke(() =>
-                {
-                    double safe = Math.Max(0, Math.Min(100, value));
-                    ProgressGlobal.Value = safe;
-                    TxtPercent.Text = safe.ToString("0") + " %";
-                });
+                Append("[INFO] Etat update absent : verification GitHub relancee avant installation.");
+                _lastCheck = await _updateService.CheckLatestAsync(updateCts.Token);
+                RefreshInstallerUpdateButton();
+            }
+
+            if (_lastCheck?.Asset is null)
+            {
+                MessageBox.Show(
+                    "Aucun package de mise a jour disponible. La verification GitHub n'a retourne aucun asset MSI/ZIP utilisable.",
+                    "EPF Optimizer Pro",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var asset = _lastCheck.Asset;
+            string assetName = asset.Name ?? string.Empty;
+            bool isMsi = assetName.EndsWith(".msi", StringComparison.OrdinalIgnoreCase);
+
+            BtnDownloadUpdate.IsEnabled = false;
+            TxtStep.Text = isMsi ? "Telechargement de l'installateur..." : "Telechargement de la mise a jour...";
+            TxtPercent.Text = "0 %";
+            ProgressGlobal.Value = 0;
+
+            Append("[INFO] Telechargement update : " + assetName);
+
+            var progress = new Progress<double>(value =>
+            {
+                double safeValue = Math.Max(0, Math.Min(100, value));
+                ProgressGlobal.Value = safeValue;
+                TxtPercent.Text = safeValue.ToString("0") + " %";
             });
 
-            string zipPath = await _updateService.DownloadAsync(_lastUpdateCheck.Asset, progress, _updateCts.Token);
-            TxtUpdateStatus.Text = "Update téléchargée : " + Path.GetFileName(zipPath);
-            TxtStep.Text = "Update téléchargée";
-            ProgressGlobal.Value = 100;
-            TxtPercent.Text = "100 %";
-            Append("[OK] Archive téléchargée : " + zipPath);
+            string filePath = await _updateService.DownloadAsync(asset, progress, updateCts.Token);
+            Append("[OK] Fichier telecharge : " + filePath);
+            TxtStep.Text = "Update telechargee";
 
-            string? folder = Path.GetDirectoryName(zipPath);
-            if (!string.IsNullOrWhiteSpace(folder) && Directory.Exists(folder))
+            if (filePath.EndsWith(".msi", StringComparison.OrdinalIgnoreCase))
             {
-                Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
-                Append("[INFO] Dossier Updates ouvert : " + folder);
+                var answer = MessageBox.Show(
+                    "La mise a jour MSI a ete telechargee. Voulez-vous lancer l'installation maintenant ?\n\n" + filePath,
+                    "Installer update",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+
+                if (answer == MessageBoxResult.Yes)
+                {
+                    Append("[INFO] Lancement de msiexec pour installer la mise a jour.");
+
+                    LaunchMsiInstallerAndRestart(filePath);
+                    Application.Current.Shutdown();
+                    return;
+                }
+
+                Append("[INFO] Installation differee par l'utilisateur. Ouverture du dossier update.");
+                OpenUpdateFolderSafe(filePath);
+                return;
             }
+
+            Append("[INFO] Package non MSI. Ouverture du dossier update.");
+            OpenUpdateFolderSafe(filePath);
         }
         catch (OperationCanceledException)
         {
-            TxtUpdateStatus.Text = "Téléchargement update annulé";
-            Append("[WARN] Téléchargement update annulé.");
+            Append("[WARN] Telechargement de la mise a jour annule.");
         }
         catch (Exception ex)
         {
-            TxtUpdateStatus.Text = "Erreur téléchargement update";
-            Append("[ERROR] Erreur téléchargement update : " + ex.Message);
+            Append("[ERREUR] Installation update : " + ex.Message);
+            MessageBox.Show(
+                "Impossible de lancer l'installation de la mise a jour :\n\n" + ex.Message,
+                "EPF Optimizer Pro",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
         finally
         {
-            BtnCheckUpdate.IsEnabled = true;
-            BtnDownloadUpdate.IsEnabled = _lastUpdateCheck?.UpdateAvailable == true && _lastUpdateCheck.Asset is not null;
-            _updateCts?.Dispose();
-            _updateCts = null;
+            BtnDownloadUpdate.IsEnabled = _lastCheck?.Asset is not null;
+            RefreshInstallerUpdateButton();
         }
     }
 
@@ -551,13 +588,143 @@ public partial class MainWindow : Window
         Close();
     }
 
+
+    private void RefreshInstallerUpdateButton()
+    {
+        try
+        {
+            if (_lastCheck?.Asset is null)
+            {
+                BtnDownloadUpdate.IsEnabled = false;
+                BtnDownloadUpdate.Content = "Télécharger update";
+                return;
+            }
+
+            BtnDownloadUpdate.IsEnabled = _lastCheck.UpdateAvailable;
+
+            string assetName = _lastCheck.Asset.Name ?? string.Empty;
+            if (assetName.EndsWith(".msi", StringComparison.OrdinalIgnoreCase))
+            {
+                BtnDownloadUpdate.Content = "Installer update";
+            }
+            else
+            {
+                BtnDownloadUpdate.Content = "Télécharger update";
+            }
+        }
+        catch (Exception ex)
+        {
+            Append("[WARN] Impossible de mettre Ã  jour le bouton update : " + ex.Message);
+        }
+    }
+
+    private void OpenUpdateFolderSafe(string? downloadedFilePath = null)
+    {
+        try
+        {
+            string folder;
+
+            if (!string.IsNullOrWhiteSpace(downloadedFilePath) && File.Exists(downloadedFilePath))
+            {
+                folder = Path.GetDirectoryName(downloadedFilePath) ?? string.Empty;
+            }
+            else
+            {
+                folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "WinOptimia",
+                    "Updates");
+            }
+
+            if (string.IsNullOrWhiteSpace(folder))
+            {
+                folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "WinOptimia",
+                    "Updates");
+            }
+
+            Directory.CreateDirectory(folder);
+            Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                "Impossible dâ€™ouvrir le dossier des mises Ã  jour : " + ex.Message,
+                "EPF Optimizer Pro",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
     protected override void OnClosed(EventArgs e)
     {
         _timer.Stop();
         _cts?.Dispose();
         base.OnClosed(e);
     }
+
+    private void LaunchMsiInstallerAndRestart(string msiPath)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(msiPath) || !File.Exists(msiPath))
+            {
+                MessageBox.Show("Le fichier MSI de mise a jour est introuvable.", "EPF Optimizer Pro", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            string programData = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "EPFOptimizerPro");
+
+            Directory.CreateDirectory(programData);
+
+            string scriptPath = Path.Combine(programData, "install-update-and-restart.ps1");
+            string currentExe = Environment.ProcessPath ?? Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
+
+            string EscapeForPowerShell(string value)
+            {
+                return (value ?? string.Empty).Replace("'", "''");
+            }
+
+            string[] scriptLines =
+            {
+                "$ErrorActionPreference = 'SilentlyContinue'",
+                "$msi = '" + EscapeForPowerShell(msiPath) + "'",
+                "$currentExe = '" + EscapeForPowerShell(currentExe) + "'",
+                "Start-Sleep -Seconds 1",
+                "$arguments = '/i \"' + $msi + '\"'",
+                "$p = Start-Process msiexec.exe -ArgumentList $arguments -Wait -PassThru",
+                "$paths = @($currentExe, 'C:\\Program Files\\EPF Optimizer Pro\\EPFOptimizerPro.exe', 'C:\\Program Files\\EPFOptimizerPro\\EPFOptimizerPro.exe', 'C:\\Program Files (x86)\\EPF Optimizer Pro\\EPFOptimizerPro.exe', 'C:\\Program Files (x86)\\EPFOptimizerPro\\EPFOptimizerPro.exe')",
+                "$target = $paths | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1",
+                "if ($target) { Start-Process $target }"
+            };
+
+            File.WriteAllLines(scriptPath, scriptLines);
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = "-ExecutionPolicy Bypass -File \"" + scriptPath + "\"",
+                UseShellExecute = true,
+                Verb = "runas"
+            });
+
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Impossible de lancer l'installation MSI : " + ex.Message, "EPF Optimizer Pro", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
 }
+
+
+
+
+
+
+
 
 
 
