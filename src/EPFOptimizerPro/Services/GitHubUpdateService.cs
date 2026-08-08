@@ -12,21 +12,35 @@ public sealed class GitHubUpdateService
 {
     private const string Owner = "patjar";
     private const string Repository = "winOptimia";
-    private static readonly Regex VersionRegex = new(@"(?<version>\d+\.\d+\.\d+(?:\.\d+)?)", RegexOptions.Compiled);
-
     private readonly HttpClient _client = new();
-    private readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
+    private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     public GitHubUpdateService()
     {
-        _client.DefaultRequestHeaders.UserAgent.ParseAdd("EPFOptimizerPro/3.9.33");
+        _client.DefaultRequestHeaders.UserAgent.ParseAdd("EPFOptimizerPro/3.9.22");
         _client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 
-    public string CurrentVersion => Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";
+    public string CurrentVersion
+    {
+        get
+        {
+            Version? version = Assembly.GetExecutingAssembly().GetName().Version;
+            if (version is null)
+            {
+                return "0.0.0";
+            }
+
+            // On conserve 4 segments si le 4e segment existe.
+            if (version.Revision > 0)
+            {
+                return version.ToString(4);
+            }
+
+            return version.ToString(3);
+        }
+    }
+
 
     public Task<UpdateCheckResult> CheckLatestAsync(CancellationToken token)
     {
@@ -36,96 +50,69 @@ public sealed class GitHubUpdateService
     public Task<UpdateCheckResult> CheckLatestAsync(string channel, CancellationToken token)
     {
         return CheckAsync(channel, token);
-    }
-
-    public async Task<UpdateCheckResult> CheckAsync(string channel, CancellationToken token)
+    }    public async Task<UpdateCheckResult> CheckAsync(string channel, CancellationToken token)
     {
-        string url = $"https://api.github.com/repos/{Owner}/{Repository}/releases?per_page=100";
-        string json = await _client.GetStringAsync(url, token);
-        List<GitHubRelease>? releases = JsonSerializer.Deserialize<List<GitHubRelease>>(json, _jsonOptions);
+        List<GitHubRelease> releases = await GetReleasesAsync(token);
 
-        if (releases is null || releases.Count == 0)
-        {
-            return NoRelease("No GitHub release found.");
-        }
-
-        Version currentVersion = ParseVersionOrZero(CurrentVersion);
-
-        List<EpfReleaseCandidate> candidates = releases
+        // On ignore les drafts. Pour EPF, on accepte aussi les prereleases afin que les tests MSI soient visibles.
+        var candidates = releases
             .Where(r => !r.Draft)
-            .Where(r => channel.Equals("beta", StringComparison.OrdinalIgnoreCase) || !r.Prerelease)
-            .Select(r =>
+            .Select(r => new
             {
-                GitHubAsset? asset = FindBestEpfAsset(r);
-                string? versionText = asset is null ? null : ExtractEpfVersion(r, asset);
-                Version version = ParseVersionOrZero(versionText ?? string.Empty);
-                return new EpfReleaseCandidate(r, asset, versionText ?? string.Empty, version);
+                Release = r,
+                Asset = FindEpfUpdateAsset(r),
+                VersionText = ExtractVersion(r)
             })
-            .Where(c => c.Asset is not null)
-            .Where(c => c.Version > new Version(0, 0, 0, 0))
-            .OrderByDescending(c => c.Version)
+            .Where(x => x.Asset is not null && Version.TryParse(x.VersionText, out _))
+            .Select(x => new
+            {
+                x.Release,
+                Asset = x.Asset!,
+                VersionText = x.VersionText,
+                Version = Version.Parse(x.VersionText)
+            })
+            .OrderByDescending(x => x.Version)
             .ToList();
 
-        EpfReleaseCandidate? latestEpf = candidates.FirstOrDefault();
-        if (latestEpf is null)
-        {
-            return NoRelease("No usable EPFOptimizerPro release found. WinOptimia releases are ignored.");
-        }
-
-        EpfReleaseCandidate? latestNewer = candidates
-            .Where(c => c.Version > currentVersion)
-            .OrderByDescending(c => c.Version)
-            .FirstOrDefault();
-
-        if (latestNewer is null)
+        if (candidates.Count == 0)
         {
             return new UpdateCheckResult
             {
                 CurrentVersion = CurrentVersion,
-                LatestVersion = latestEpf.VersionText,
+                LatestVersion = "inconnue",
                 UpdateAvailable = false,
-                ReleaseUrl = latestEpf.Release.HtmlUrl,
-                Notes = "No newer EPFOptimizerPro release available. WinOptimia releases are ignored.",
-                Asset = null
+                Notes = "Aucune release EPFOptimizerPro exploitable trouvee. Attendu : asset .msi ou .zip contenant EPFOptimizerPro."
             };
         }
+
+        var latest = candidates[0];
+        bool available = IsNewer(latest.VersionText, CurrentVersion);
 
         return new UpdateCheckResult
         {
             CurrentVersion = CurrentVersion,
-            LatestVersion = latestNewer.VersionText,
-            UpdateAvailable = true,
-            ReleaseUrl = latestNewer.Release.HtmlUrl,
-            Notes = latestNewer.Release.Body,
-            Asset = latestNewer.Asset
+            LatestVersion = latest.VersionText,
+            UpdateAvailable = available,
+            ReleaseUrl = latest.Release.HtmlUrl,
+            Notes = latest.Release.Body,
+            Asset = latest.Asset
         };
     }
 
     public async Task<string> DownloadAsync(GitHubAsset asset, IProgress<double>? progress, CancellationToken token)
     {
-        string updatesFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "WinOptimia",
-            "Updates");
-
-        Directory.CreateDirectory(updatesFolder);
+        string updateFolder = GetWritableUpdateFolder();
+        Directory.CreateDirectory(updateFolder);
 
         string safeName = string.IsNullOrWhiteSpace(asset.Name) ? "EPFOptimizerPro-update.msi" : asset.Name;
-        string outputPath = Path.Combine(updatesFolder, safeName);
-
-        if (File.Exists(outputPath))
-        {
-            string name = Path.GetFileNameWithoutExtension(safeName);
-            string ext = Path.GetExtension(safeName);
-            outputPath = Path.Combine(updatesFolder, $"{name}-{DateTime.Now:yyyyMMdd-HHmmss}{ext}");
-        }
+        string outputPath = GetUniqueFilePath(Path.Combine(updateFolder, safeName));
 
         using HttpResponseMessage response = await _client.GetAsync(asset.BrowserDownloadUrl, HttpCompletionOption.ResponseHeadersRead, token);
         response.EnsureSuccessStatusCode();
 
         long? totalLength = response.Content.Headers.ContentLength;
         await using Stream source = await response.Content.ReadAsStreamAsync(token);
-        await using FileStream target = File.Create(outputPath);
+        await using FileStream target = new(outputPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
 
         byte[] buffer = new byte[81920];
         long totalRead = 0;
@@ -153,110 +140,146 @@ public sealed class GitHubUpdateService
 
     public void OpenReleasePage(string url)
     {
-        if (!string.IsNullOrWhiteSpace(url))
+        if (string.IsNullOrWhiteSpace(url))
         {
-            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            return;
         }
+
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
     }
 
-    private UpdateCheckResult NoRelease(string notes)
+    private async Task<List<GitHubRelease>> GetReleasesAsync(CancellationToken token)
     {
-        return new UpdateCheckResult
-        {
-            CurrentVersion = CurrentVersion,
-            LatestVersion = "inconnue",
-            UpdateAvailable = false,
-            Notes = notes,
-            Asset = null
-        };
+        string url = $"https://api.github.com/repos/{Owner}/{Repository}/releases?per_page=100";
+        string json = await _client.GetStringAsync(url, token);
+        return JsonSerializer.Deserialize<List<GitHubRelease>>(json, _jsonOptions) ?? new List<GitHubRelease>();
     }
 
-    private static GitHubAsset? FindBestEpfAsset(GitHubRelease release)
+    private static GitHubAsset? FindEpfUpdateAsset(GitHubRelease release)
     {
         if (release.Assets is null || release.Assets.Count == 0)
         {
             return null;
         }
 
-        GitHubAsset? msi = release.Assets
-            .Where(a => IsEpfAssetName(a.Name))
-            .Where(a => a.Name.EndsWith(".msi", StringComparison.OrdinalIgnoreCase))
-            .FirstOrDefault();
-
-        if (msi is not null)
+        static bool IsEpfAsset(GitHubAsset asset)
         {
-            return msi;
+            string name = asset.Name ?? string.Empty;
+            bool isPackage = name.EndsWith(".msi", StringComparison.OrdinalIgnoreCase) ||
+                             name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase);
+
+            bool isEpf = name.Contains("EPFOptimizerPro", StringComparison.OrdinalIgnoreCase) ||
+                         name.Contains("EPF-Optimizer", StringComparison.OrdinalIgnoreCase) ||
+                         name.Contains("EPFOptimizer", StringComparison.OrdinalIgnoreCase);
+
+            return isPackage && isEpf;
         }
 
+        // Priorite au MSI.
         return release.Assets
-            .Where(a => IsEpfAssetName(a.Name))
-            .Where(a => a.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            .Where(IsEpfAsset)
+            .OrderByDescending(a => (a.Name ?? string.Empty).EndsWith(".msi", StringComparison.OrdinalIgnoreCase))
+            .ThenBy(a => a.Name)
             .FirstOrDefault();
     }
 
-    private static bool IsEpfAssetName(string? name)
+    private static string ExtractVersion(GitHubRelease release)
     {
-        if (string.IsNullOrWhiteSpace(name))
+        string source = release.TagName ?? string.Empty;
+        Match tagMatch = Regex.Match(source, @"(?<v>\d+\.\d+\.\d+(?:\.\d+)?)");
+        if (tagMatch.Success)
+        {
+            return tagMatch.Groups["v"].Value;
+        }
+
+        if (release.Assets is not null)
+        {
+            foreach (var asset in release.Assets)
+            {
+                Match assetMatch = Regex.Match(asset.Name ?? string.Empty, @"(?<v>\d+\.\d+\.\d+(?:\.\d+)?)");
+                if (assetMatch.Success)
+                {
+                    return assetMatch.Groups["v"].Value;
+                }
+            }
+        }
+
+        return "0.0.0";
+    }
+
+    private static bool IsNewer(string latest, string current)
+    {
+        if (!Version.TryParse(latest, out Version? latestVersion))
         {
             return false;
         }
 
-        if (name.Contains("WinOptimia", StringComparison.OrdinalIgnoreCase))
+        if (!Version.TryParse(current, out Version? currentVersion))
+        {
+            return true;
+        }
+
+        return latestVersion > currentVersion;
+    }
+
+    private static string GetWritableUpdateFolder()
+    {
+        string programData = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "WinOptimia",
+            "Updates");
+
+        if (CanWriteToFolder(programData))
+        {
+            return programData;
+        }
+
+        string localAppData = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "WinOptimia",
+            "Updates");
+
+        Directory.CreateDirectory(localAppData);
+        return localAppData;
+    }
+
+    private static bool CanWriteToFolder(string folder)
+    {
+        try
+        {
+            Directory.CreateDirectory(folder);
+            string testFile = Path.Combine(folder, ".write-test-" + Guid.NewGuid().ToString("N") + ".tmp");
+            File.WriteAllText(testFile, "test");
+            File.Delete(testFile);
+            return true;
+        }
+        catch
         {
             return false;
         }
-
-        return name.Contains("EPFOptimizerPro", StringComparison.OrdinalIgnoreCase)
-            || name.Contains("EPFOptimizer", StringComparison.OrdinalIgnoreCase)
-            || name.Contains("EPF-Optimizer", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string? ExtractEpfVersion(GitHubRelease release, GitHubAsset asset)
+    private static string GetUniqueFilePath(string path)
     {
-        string assetName = asset.Name ?? string.Empty;
-        Match assetMatch = VersionRegex.Match(assetName);
-        if (assetMatch.Success)
+        if (!File.Exists(path))
         {
-            return assetMatch.Groups["version"].Value;
+            return path;
         }
 
-        string tag = release.TagName ?? string.Empty;
-        if (!tag.StartsWith("epf-", StringComparison.OrdinalIgnoreCase) && !tag.Contains("EPF", StringComparison.OrdinalIgnoreCase))
+        string folder = Path.GetDirectoryName(path) ?? string.Empty;
+        string name = Path.GetFileNameWithoutExtension(path);
+        string ext = Path.GetExtension(path);
+
+        for (int i = 1; i < 1000; i++)
         {
-            return null;
+            string candidate = Path.Combine(folder, $"{name}-{i}{ext}");
+            if (!File.Exists(candidate))
+            {
+                return candidate;
+            }
         }
 
-        Match tagMatch = VersionRegex.Match(tag);
-        return tagMatch.Success ? tagMatch.Groups["version"].Value : null;
+        return Path.Combine(folder, $"{name}-{Guid.NewGuid():N}{ext}");
     }
-
-    private static Version ParseVersionOrZero(string value)
-    {
-        return Version.TryParse(NormalizeVersion(value), out Version? version)
-            ? version
-            : new Version(0, 0, 0, 0);
-    }
-
-    private static string NormalizeVersion(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return "0.0.0";
-        }
-
-        string clean = value.Trim();
-        if (clean.StartsWith("v", StringComparison.OrdinalIgnoreCase))
-        {
-            clean = clean[1..];
-        }
-
-        Match match = VersionRegex.Match(clean);
-        return match.Success ? match.Groups["version"].Value : "0.0.0";
-    }
-
-    private sealed record EpfReleaseCandidate(
-        GitHubRelease Release,
-        GitHubAsset? Asset,
-        string VersionText,
-        Version Version);
 }
+
