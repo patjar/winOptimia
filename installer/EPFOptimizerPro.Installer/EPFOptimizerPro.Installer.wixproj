@@ -1,9 +1,9 @@
-﻿<Project Sdk="WixToolset.Sdk/7.0.0">
+<Project Sdk="WixToolset.Sdk/7.0.0">
   <PropertyGroup>
     <OutputType>Package</OutputType>
     <InstallerPlatform>x64</InstallerPlatform>
-    <OutputName>EPFOptimizerPro-v3.9.23-setup</OutputName>
-    <ProductVersion>3.9.23</ProductVersion>
+    <OutputName>EPFOptimizerPro-v3.9.33-setup</OutputName>
+    <ProductVersion>3.9.33</ProductVersion>
     <PublishDir Condition="'$(PublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\publish\EPFOptimizerPro</PublishDir>
       <AcceptEula>wix7</AcceptEula>
 </PropertyGroup>

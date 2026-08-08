@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Reflection;
@@ -17,7 +17,7 @@ public sealed class GitHubUpdateService
 
     public GitHubUpdateService()
     {
-        _client.DefaultRequestHeaders.UserAgent.ParseAdd("EPFOptimizerPro/3.9.22");
+        _client.DefaultRequestHeaders.UserAgent.ParseAdd("EPFOptimizerPro/3.9.33");
         _client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 

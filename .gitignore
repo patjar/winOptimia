@@ -13,3 +13,11 @@ src/EPFOptimizerPro/obj/
 artifacts/
 *.msi
 *.zip
+bin/
+obj/
+artifacts/
+*.msi
+*.zip
+*.bak-v3*
+Apply-v3*.ps1
+.tools/

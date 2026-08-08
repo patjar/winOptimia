@@ -1,1 +1,14 @@
-﻿<InformationalVersion>3.9.22-msi-release-selection-fix</InformationalVersion>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <ApplicationIcon>Assets\EPFOptimizerPro.ico</ApplicationIcon>
+    <Version>3.9.33</Version>
+    <AssemblyVersion>3.9.33.0</AssemblyVersion>
+    <FileVersion>3.9.33.0</FileVersion>
+    <InformationalVersion>3.9.33-stable-candidate</InformationalVersion>
+  </PropertyGroup>
+</Project>
