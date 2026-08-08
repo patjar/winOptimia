@@ -1,4 +1,4 @@
-﻿<Window x:Class="EPFOptimizerPro.MainWindow"
+<Window x:Class="EPFOptimizerPro.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="EPF Optimizer Pro Premium IA v3.9.35" Height="940" Width="1320" MinHeight="860" MinWidth="1180"
@@ -68,6 +68,12 @@
             <Setter Property="Padding" Value="10"/>
         </Style>
     </Window.Resources>
+    <ScrollViewer x:Name="EPFMainScrollViewer"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  CanContentScroll="False"
+                  PanningMode="VerticalOnly"
+                  MinWidth="1180">
 
     <Grid Background="{StaticResource PageGradient}" Margin="22">
         <Grid.RowDefinitions>
@@ -312,7 +318,8 @@
             </Border>
         </Grid>
     </Grid>
-</Window>
+
+    </ScrollViewer></Window>
 
 
 
