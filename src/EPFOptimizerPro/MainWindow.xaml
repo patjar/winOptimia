@@ -68,14 +68,8 @@
             <Setter Property="Padding" Value="10"/>
         </Style>
     </Window.Resources>
-    <ScrollViewer x:Name="EPFMainScrollViewer"
-                  VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled"
-                  CanContentScroll="False"
-                  PanningMode="VerticalOnly"
-                  MinWidth="1180">
 
-    <Grid Background="{StaticResource PageGradient}" Margin="22">
+    <ScrollViewer x:Name="MainDashboardScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" PanningMode="VerticalOnly" CanContentScroll="False"><Grid Background="{StaticResource PageGradient}" Margin="22">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -319,7 +313,8 @@
         </Grid>
     </Grid>
 
-    </ScrollViewer></Window>
+</ScrollViewer>
+</Window>
 
 
 
