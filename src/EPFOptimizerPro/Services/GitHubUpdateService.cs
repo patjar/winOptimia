@@ -17,7 +17,7 @@ public sealed class GitHubUpdateService
 
     public GitHubUpdateService()
     {
-        _client.DefaultRequestHeaders.UserAgent.ParseAdd("EPFOptimizerPro/3.9.35");
+        _client.DefaultRequestHeaders.UserAgent.ParseAdd("EPFOptimizerPro/3.9.36");
         _client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 
@@ -287,3 +287,4 @@ public sealed class GitHubUpdateService
         string VersionText,
         Version Version);
 }
+
